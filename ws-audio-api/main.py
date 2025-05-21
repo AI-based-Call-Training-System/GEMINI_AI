@@ -3,6 +3,7 @@ from stt.stt_module import transcribe_audio
 from gemini.gemini_module import ask_gemini
 from tts.tts_module import text_to_speech
 from vad.vad_module import is_speech_chunk
+from fastapi.middleware.cors import CORSMiddleware
 
 from fastapi.responses import FileResponse
 import os
@@ -11,6 +12,13 @@ import uuid
 app = FastAPI()
 
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # 개발 중에는 * 가능 / 배포 시 특정 도메인으로 제한
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 @app.websocket("/ws/audio")
 async def websocket_audio(websocket: WebSocket):
     await websocket.accept()
