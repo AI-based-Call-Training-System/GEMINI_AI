@@ -1,6 +1,10 @@
 from google.cloud import speech
 import os
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = r"D:\User\FastAPIProject\igo-jungangyeeya2025.json"
+from dotenv import load_dotenv
+
+load_dotenv()
+
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] =os.getenv("STT_API_KEY")
 
 def transcribe_audio(audio_bytes: bytes) -> str:
     client = speech.SpeechClient()

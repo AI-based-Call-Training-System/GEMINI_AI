@@ -2,7 +2,12 @@ from google.cloud import texttospeech
 import uuid
 
 import os
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = r"D:\User\FastAPIProject\igo-jungangyeeya2025.json"
+
+from dotenv import load_dotenv
+
+# .env 파일 로드
+load_dotenv()
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] =os.getenv("STT_API_KEY")
 
 def text_to_speech(text: str, output_dir="output") -> str:
     client = texttospeech.TextToSpeechClient()
