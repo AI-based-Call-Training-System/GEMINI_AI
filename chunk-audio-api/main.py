@@ -8,6 +8,13 @@ from stt.stt_module import transcribe_audio
 from gemini.gemini_module import ask_gemini
 from tts.tts_module import text_to_speech, text_to_speech_chunks
 
+from pymongo import MongoClient
+
+# MongoDB 연결
+client = MongoClient("mongodb://localhost:27017")
+db = client["Call-Training-DB"]  # ← 실제 사용 중인 DB 이름으로 바꾸세요
+sessions_collection = db["Sessions"]  # 컬렉션 이름도 정확히!
+
 # 환경 변수 로드
 load_dotenv()
 
@@ -60,3 +67,11 @@ async def generate_audio_from_text(
         return {"error": "음성 변환 실패"}
 
     return FileResponse(chunk_paths[0], media_type="audio/wav", filename=os.path.basename(chunk_paths[0]))
+
+@app.get("/session/history")
+def get_history(user_id: str):
+    session = db["Sessions"].find_one({"userId": user_id})
+    if session:
+        return {"history": session.get("history", [])}
+    return {"history": []}
+
