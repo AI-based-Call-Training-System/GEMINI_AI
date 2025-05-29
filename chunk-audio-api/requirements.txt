@@ -3,3 +3,5 @@ uvicorn
 google-cloud-speech
 google-generativeai
 python-multipart
+pymongo
+python-dotenv
