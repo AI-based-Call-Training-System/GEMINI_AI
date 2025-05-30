@@ -1,11 +1,10 @@
 # chunk-audio-api/gemini/gemini_module.py
-
 import os
 import google.generativeai as genai
 from dotenv import load_dotenv
 
 from gemini.prompt_module import build_prompt_from_history
-from db.history_module import get_user_history, save_to_history
+from db.history_module import get_user_history
 
 # 환경 변수 로드 및 Gemini 설정
 load_dotenv()
@@ -24,10 +23,6 @@ def ask_gemini(user_id: str, user_input: str) -> str:
         # 3. Gemini 호출
         response = model.generate_content(prompt)
         gemini_reply = response.text.strip()
-
-        # 4. 히스토리 저장
-        save_to_history(user_id, "user", user_input)
-        save_to_history(user_id, "gemini", gemini_reply)
 
         return gemini_reply
     except Exception as e:

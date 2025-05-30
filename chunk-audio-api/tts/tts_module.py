@@ -17,6 +17,7 @@ os.makedirs(CHUNK_AUDIO_DIR, exist_ok=True)
 
 
 def text_to_speech(text: str, output_dir: str = DEFAULT_AUDIO_DIR) -> str:
+    os.makedirs(output_dir, exist_ok=True)
     synthesis_input = texttospeech.SynthesisInput(text=text)
     voice = texttospeech.VoiceSelectionParams(
         language_code="ko-KR",

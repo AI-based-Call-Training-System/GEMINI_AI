@@ -1,6 +1,7 @@
 # chunk-audio-api/db/database.py
 import os
 from pymongo import MongoClient
+import gridfs
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -10,6 +11,7 @@ DB_NAME = os.getenv("MONGO_DB")
 
 client = MongoClient(MONGO_URI)
 db = client[DB_NAME]
+fs = gridfs.GridFS(db)  # GridFS 초기화
 
 # 사용할 컬렉션
 users_col = db["Users"]        # 사용자 컬렉션
