@@ -1,8 +1,13 @@
-from fastapi import FastAPI, UploadFile, File, Form
-from fastapi.responses import FileResponse
+from fastapi import FastAPI, Query, UploadFile, File, Form
+
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 import os
+
+# test /eval-audio 용
+import shutil
+
 
 from tts.tts_module import text_to_speech_chunks
 from services.audio_logic_service import process_user_audio, process_gemini_response, stream_audio_from_gridfs
@@ -59,3 +64,23 @@ def get_audio(audio_id: str):
         return stream_audio_from_gridfs(audio_id)
     except Exception as e:
         return {"error": str(e)}
+
+@app.get("/evaluate-audio/")
+async def evaluate_audio(userId: str = Query(...)):
+    # 예: 서버에서 저장된 파일 경로 불러오기
+    audio_path = f"saved_audios/{userId}.wav"
+
+    # 실제 평가 함수 실행
+    result = run_evaluation(audio_path)
+
+    return JSONResponse(content={"userId": userId, "result": result})
+
+def run_evaluation(audio_path):
+    # 예시: 평가 모델 호출
+    # 점수 반환 구조 예시
+    return {
+        "goal_achievement": 87.5,
+        "speech_speed": 75.0,
+        "silence_time": 20.3,
+        "context_consistency": 92.0
+    }
