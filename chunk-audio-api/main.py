@@ -12,6 +12,13 @@ import shutil
 from tts.tts_module import text_to_speech_chunks
 from services.audio_logic_service import process_user_audio, process_gemini_response, stream_audio_from_gridfs
 
+from pymongo import MongoClient
+
+# MongoDB 연결
+client = MongoClient("mongodb://localhost:27017")
+db = client["Call-Training-DB"]  # ← 실제 사용 중인 DB 이름으로 바꾸세요
+sessions_collection = db["Sessions"]  # 컬렉션 이름도 정확히!
+
 # 환경 변수 로드
 load_dotenv()
 
@@ -56,6 +63,14 @@ async def generate_audio_from_text(
     if not chunk_paths:
         return {"error": "음성 변환 실패"}
     return FileResponse(chunk_paths[0], media_type="audio/wav", filename=os.path.basename(chunk_paths[0]))
+
+@app.get("/session/history")
+def get_history(user_id: str):
+    session = db["Sessions"].find_one({"userId": user_id})
+    if session:
+        return {"history": session.get("history", [])}
+    return {"history": []}
+
 
 # /get-audio/{audio_id} → 저장된 GridFS 음성 스트리밍
 @app.get("/get-audio/{audio_id}")
