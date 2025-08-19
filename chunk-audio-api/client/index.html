@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<body>
+<button id="startBtn">🎤 Start Chat</button>
+<audio id="replyAudio" controls></audio>
+
+<script>
+let ws;
+let mediaRecorder;
+let audioUrl;
+
+document.getElementById("startBtn").onclick = async () => {
+    if (mediaRecorder && mediaRecorder.state === "recording") {
+        // 녹음 중지
+        mediaRecorder.stop();
+        document.getElementById("startBtn").textContent = "🎤 Start Chat";
+    } else {
+        // 웹소켓 연결 생성
+        ws = new WebSocket("ws://localhost:8000");
+        ws.binaryType = "arraybuffer";
+
+        // 서버에서 보내는 음성 데이터 처리
+        ws.onmessage = e => {
+            if (audioUrl) {
+                URL.revokeObjectURL(audioUrl);  // 이전 URL 해제
+            }
+            const audioBlob = new Blob([e.data], { type: "audio/wav" });
+            audioUrl = URL.createObjectURL(audioBlob);
+            document.getElementById("replyAudio").src = audioUrl;
+            document.getElementById("replyAudio").play();
+        };
+
+        // 마이크 권한 요청 및 스트림 받기
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+        // MediaRecorder 생성, webm 포맷 사용
+        mediaRecorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
+
+        // 데이터가 준비될 때마다 서버로 전송
+        mediaRecorder.ondataavailable = e => {
+            if (ws.readyState === WebSocket.OPEN) {
+                ws.send(e.data);
+            }
+        };
+
+        // 녹음 중지 시 'END' 메시지로 서버에 전송
+        mediaRecorder.onstop = () => {
+            if (ws.readyState === WebSocket.OPEN) {
+                ws.send("END");
+            }
+        };
+
+        mediaRecorder.start(250);
+        document.getElementById("startBtn").textContent = "⏹ Stop Chat";
+    }
+};
+</script>
+</body>
+</html>
