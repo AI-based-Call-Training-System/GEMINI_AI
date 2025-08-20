@@ -64,19 +64,25 @@ async def chat_audio_to_voice(
 # ex) http://127.0.0.1:8000/session/history?user_id=111
 @app.get("/session/history")
 def get_history(user_id: str = Query(..., description="조회할 사용자 ID")):
-    session = db["Sessions"].find_one(
-        {"userId": user_id},        
-        {"history.role": 1, "history.content": 1, "_id": 0}  # projection
-)
-    if session and "history" in session:
-        # history 배열에서 role과 content만 반환
-        filtered_history = [
-            {"role": item.get("role"), "content": item.get("content")}
-            for item in session["history"]
-        ]
-        return {"history": filtered_history}
+    session = db["Sessions"].find_one({"userId": user_id})
+    if session:
+        return {"history": session.get("history", [])}
+
+# role과 content 버전
+
+#     session = db["Sessions"].find_one(
+#         {"userId": user_id},        
+#         {"history.role": 1, "history.content": 1, "_id": 0}  # projection
+# )
+#     if session and "history" in session:
+#         # history 배열에서 role과 content만 반환
+#         filtered_history = [
+#             {"role": item.get("role"), "content": item.get("content")}
+#             for item in session["history"]
+#         ]
+#         return {"history": filtered_history}
     
-    return {"history": []}
+#     return {"history": []}
 
 
 
