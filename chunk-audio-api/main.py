@@ -56,7 +56,8 @@ async def chat_audio_to_voice(
         "gemini_reply": gemini_data["reply"],
         "tts_audio_path": gemini_data["audio_path"],
         "user_audio_id": user_data["audio_id"],
-        "gemini_audio_id": gemini_data["audio_id"]
+        "gemini_audio_id": gemini_data["audio_id"],
+        "tts_audio_base64": gemini_data["tts_audio_base64"]
     }
 
 
