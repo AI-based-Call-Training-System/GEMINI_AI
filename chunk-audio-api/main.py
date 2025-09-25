@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Query, UploadFile, File, Form
+from fastapi import FastAPI, Query, UploadFile, File, Form,Request
 
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,7 +10,7 @@ import shutil
 
 
 from tts.tts_module import text_to_speech_chunks
-from services.audio_logic_service import process_user_audio, process_gemini_response, stream_audio_from_gridfs
+from services.audio_logic_service import process_user_audio, process_gemini_response
 
 from pymongo import MongoClient
 
@@ -39,15 +39,20 @@ app.add_middleware(
 # /chat/audio → 히스토리 기반 AI 응답 및 음성 생성
 @app.post("/chat/audio",
           summary="file,user_id-> ai 응답생성")
-async def chat_audio_to_voice(
+async def chat_audio_to_voice(request: Request,
     file: UploadFile = File(...),
-    user_id: str = Form(...)
+    user_id: str = Form(...),
+    session_id:str=Form(...),
+    token: str=Form(...)
+
 ):
+    form = await request.form()
+    print(form) 
     audio_bytes = await file.read()
 
     try:
-        user_data = process_user_audio(user_id, audio_bytes)
-        gemini_data = process_gemini_response(user_id, user_data["transcript"])
+        user_data = await process_user_audio(user_id, audio_bytes,session_id,token)
+        gemini_data = await process_gemini_response(user_id, user_data["transcript"],session_id,token)
     except Exception as e:
         return {"error": str(e)}
 
@@ -59,32 +64,6 @@ async def chat_audio_to_voice(
         "gemini_audio_id": gemini_data["audio_id"],
         "tts_audio_base64": gemini_data["tts_audio_base64"]
     }
-
-
-# session 테이블에서 userId의 세션을 조회해 history를 끌고와서 gemini에게 줄 history 준비
-# ex) http://127.0.0.1:8000/session/history?user_id=111
-@app.get("/session/history")
-def get_history(user_id: str = Query(..., description="조회할 사용자 ID")):
-    session = db["Sessions"].find_one({"userId": user_id})
-    if session:
-        return {"history": session.get("history", [])}
-
-# role과 content 버전
-
-#     session = db["Sessions"].find_one(
-#         {"userId": user_id},        
-#         {"history.role": 1, "history.content": 1, "_id": 0}  # projection
-# )
-#     if session and "history" in session:
-#         # history 배열에서 role과 content만 반환
-#         filtered_history = [
-#             {"role": item.get("role"), "content": item.get("content")}
-#             for item in session["history"]
-#         ]
-#         return {"history": filtered_history}
-    
-#     return {"history": []}
-
 
 
 @app.get("/evaluate-audio/")
@@ -118,33 +97,3 @@ def run_evaluation(audio_path):
 
 
 
-
-# tts 테스트 코드
-
-# @app.post("/generate/audio",
-#           summary="text(ai 응답))")
-# # 비동기 : tts
-# async def generate_audio_from_text(
-#     # 텍스트를 form 형식으로 보냄
-#     # 이렇게 담게 되면 fastapi는 자동으로 multipart/form-data를 응답으로 기대
-#     # Form 대신 Body로 json을 기대하게 할 수 있음
-#     text: str = Form(...)
-# ):
-#     chunk_paths = text_to_speech_chunks(text, base_filename="tts_chunk", output_dir="output/chunk")
-#     if not chunk_paths:
-#         return {"error": "음성 변환 실패"}
-#     # fastapi 에서 파일을 http 응답으로 반환하는 객체
-#     return FileResponse(chunk_paths[0], media_type="audio/wav", filename=os.path.basename(chunk_paths[0]))
-
-
-#############################################################################33
-# ai audio 반환 테스트 endpoint
-#   
-# # /get-audio/{audio_id} → 저장된 GridFS 음성 스트리밍
-# # gridFS란? 음성 동영상등 큰 크기의 파일을 저장하는 방식
-# @app.get("/get-audio/{audio_id}")
-# def get_audio(audio_id: str):
-#     try:
-#         return stream_audio_from_gridfs(audio_id)
-#     except Exception as e:
-#         return {"error": str(e)}

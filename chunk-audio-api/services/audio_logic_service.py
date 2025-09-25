@@ -1,7 +1,7 @@
 # app/services/audio_logic_service.py
 from datetime import datetime,timezone
 import uuid
-from bson import ObjectId
+
 import io
 import os
 from fastapi.responses import StreamingResponse
@@ -35,7 +35,7 @@ def convert_to_wav(input_bytes: bytes) -> str:
 
     return output_path
 
-def process_user_audio(user_id: str, audio_bytes: bytes) -> dict:
+async def process_user_audio(user_id: str, audio_bytes: bytes, session_id:str,token:str) -> dict:
     # 1. 업로드된 파일을 wav로 변환
     wav_path = convert_to_wav(audio_bytes)
 
@@ -55,17 +55,18 @@ def process_user_audio(user_id: str, audio_bytes: bytes) -> dict:
     os.makedirs("output/audio/user", exist_ok=True)
     shutil.move(wav_path, audio_path)  # 변환 파일을 최종 저장소로 이동
 
-    save_detailed_history(
-        user_id=user_id,
+# nestjs서버와 통신할 수 있게 변환한
+# 새로운 버전의 save_detailed_history
+    await save_detailed_history(
         role="user",
+        user_id=user_id,
+        session_id=session_id,
         content=transcript,
-        audio_id=str(file_id),
-        audio_path=audio_path
+        token=token
     )
-
     return {"transcript": transcript, "audio_id": str(file_id), "audio_path": audio_path}
 
-def process_gemini_response(user_id: str, input_text: str) -> dict:
+async def process_gemini_response(user_id: str, input_text: str,session_id:str,token:str) -> dict:
     response_text = ask_gemini(user_id, input_text)
     tts_path = text_to_speech(response_text, output_dir="output/audio/gemini")
 
@@ -87,21 +88,13 @@ def process_gemini_response(user_id: str, input_text: str) -> dict:
     import base64
     wav_b64 = base64.b64encode(wav_bytes).decode("utf-8")
 
-    save_detailed_history(
+    await save_detailed_history(
         user_id=user_id,
         role="gemini",
         content=response_text,
-        audio_id=str(file_id),
-        audio_path=audio_path
+        session_id=session_id,
+        token=token
     )
 
     return {"reply": response_text, "audio_id": str(file_id), "audio_path": audio_path,"tts_audio_base64": wav_b64}
 
-
-#이거 안씀
-def stream_audio_from_gridfs(audio_id: str):
-    try:
-        audio_data = fs.get(ObjectId(audio_id)).read()
-        return StreamingResponse(io.BytesIO(audio_data), media_type="audio/wav")
-    except Exception as e:
-        raise RuntimeError(f"오디오 스트리밍 실패: {str(e)}")
