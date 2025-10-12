@@ -49,7 +49,7 @@ async def process_user_audio(user_id: str, audio_bytes: bytes, session_id:str,to
     print("음성감지성공")
 
     # 3. DB/GridFS 저장
-    file_id = fs.put(open(wav_path, "rb"), filename=f"user_{user_id}_{datetime.now(timezone.utc).isoformat()}")
+    file_id = fs.put(open(wav_path, "rb"), filename=f"user_{user_id}_{session_id}_{datetime.now(timezone.utc).isoformat()}")
     audio_path = f"output/audio/user/{str(file_id)}.wav"
 
     os.makedirs("output/audio/user", exist_ok=True)

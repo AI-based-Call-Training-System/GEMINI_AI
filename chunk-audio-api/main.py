@@ -1,22 +1,28 @@
-from fastapi import FastAPI, Query, UploadFile, File, Form,Request
-
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi import FastAPI, UploadFile, File, Form,Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 import os
-
+from pymongo import MongoClient
+import gridfs
+import librosa
+import soundfile as sf
+import io
+from datetime import datetime
 # test /eval-audio 용
 import shutil
 
 
 from tts.tts_module import text_to_speech_chunks
 from services.audio_logic_service import process_user_audio, process_gemini_response
-
+from eval.get_wps_gap import *
 from pymongo import MongoClient
 
 # MongoDB 연결
 client = MongoClient("mongodb://localhost:27017")
 db = client["Call-Training-DB"]  # DB
+fs = gridfs.GridFS(db)
+
 sessions_collection = db["Sessions"]  # 컬렉션
 
 # 환경 변수 로드
@@ -66,34 +72,54 @@ async def chat_audio_to_voice(request: Request,
     }
 
 
-@app.get("/evaluate-audio/")
-#userId는 특정 세션,,,
 
-# 세션-> 통화 평가 번호
-async def evaluate_audio(userId: str = Query(...)):
-    # 예: 서버에서 저장된 파일 경로 불러오기
-    audio_path = f"saved_audios/{userId}.wav"
+@app.get("/evaluate_audio/{session_id}")
+def get_average_speech_rate(session_id: str):
+    # 1. Session 문서 가져오기
+    session_doc = sessions_collection.find_one({"sessionId": session_id})
+    if not session_doc:
+        raise ValueError(f"Session {session_id} not found")
 
-    # 실제 평가 함수 실행
-    result = run_evaluation(audio_path)
+    history = session_doc.get("history", [])
+    if not history:
+        return None
 
-    return JSONResponse(content={"userId": userId, "result": result})
+    rates = []
+
+    for message in history:
+        message_id = message.get("messageId")
+        content = message.get("content")
+        if not content or not message_id:
+            continue
+
+        # 2. GridFS에서 해당 메시지 파일 찾기
+        # 파일 이름에 sessionId가 포함되어 있다고 가정
+        file_doc = fs.find_one({"filename": {"$regex": f"tester1"}})
+        if not file_doc:
+            print(f"⚠️ Audio file for {message_id} not found")
+            continue
+
+        # 3. 파일을 메모리로 읽기
+        audio_bytes = file_doc.read()  # bytes
+
+        # 4. calculate_speech_rate_active 함수 적용
+        try:
+            result = calculate_speech_rate(audio_bytes, content)
+            if result:
+                rates.append(result["words_per_min"])
+        except Exception as e:
+            print(f"⚠️ Error processing {message_id}: {e}")
+
+    if not rates:
+        return None
+
+    avg_rate = sum(rates) / len(rates)
+    return {"wpm":avg_rate}
 
 
-#이걸로 일단 대체
-def run_evaluation(audio_path):
-    # 예시: 평가 모델 호출
-    # 점수 반환 구조 예시
-    return {
-        # 텍스트 데이터
-        "speech_speed": 75.0,
-        "silence_time": 20.3,
-
-        #음성데이터
-        "context_consistency": 92.0,
-        "goal_achievement": 87.5
-
-    }
-
+# if __name__ == "__main__":
+#     session_id = "S-01K6ZWCA052JXADC3D1KA84BBW"
+#     avg = get_average_speech_rate(session_id)
+#     print(f"Average speech rate: {avg:.2f} words/min")
 
 

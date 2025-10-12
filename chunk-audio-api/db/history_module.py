@@ -3,6 +3,7 @@ from datetime import datetime,timezone
 from db.database import sessions_col
 import httpx
 import asyncio
+from eval.get_wps_gap import calculate_speech_rate
 NESTJS_URL = "http://localhost:3000/history"  # NestJS API 엔드포인트
 
 # 기존에 바로 컬렉션에 저장되던 로직을
@@ -16,13 +17,14 @@ async def save_detailed_history(user_id: str, session_id:str,role: str, content:
                 "Authorization": f"Bearer {token}",  # 토큰 헤더
                 "Content-Type": "application/json"
             }
-
+            
             print("sv_dtl_hist2 정상작동:",content)
             payload = {
                 "seq":1,
                 "role": role,
                 "content":content,
-                "timestamp": datetime.now(timezone.utc).isoformat()  # 필요시 추가
+                "timestamp": datetime.now(timezone.utc).isoformat(),  # 필요시 추가
+                "wpm": None # (총단어/분)
             }
                # URL에 userId, sessionId 삽입
             url = f"{NESTJS_URL}/{user_id}/{session_id}/messages"
@@ -57,3 +59,15 @@ def reset_user_history(user_id: str):
         {"userId": user_id},
         {"$set": {"history": [], "updatedAt": datetime.utcnow().isoformat()}}
     )
+
+# # 사용자 발화 평가 트리거
+# def call_calc_speed(audio_path: str, stt_text: str, top_db: int = 30):
+#     return calculate_speech_rate_active(audio_path, stt_text, top_db)
+    
+#     # {
+#     #   'audio_path': 'example.wav',
+#     #   'active_speech_sec': 6.21,
+#     #   'word_count': 9,
+#     #   'words_per_sec': 1.45,
+#     #   'words_per_min': 87.0
+#     # }
