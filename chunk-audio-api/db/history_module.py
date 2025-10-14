@@ -11,6 +11,7 @@ NESTJS_URL = "http://localhost:3000/history"  # NestJS API 엔드포인트
 async def save_detailed_history(user_id: str, session_id:str,role: str, content: str,token:str):
     print("sv dtl his2 들어옴")
     try:
+        print("save_detailed_history에서 token:",token)
         # ✅ NestJS로 메타데이터 전송
         async with httpx.AsyncClient() as client:
             headers = {
@@ -23,9 +24,11 @@ async def save_detailed_history(user_id: str, session_id:str,role: str, content:
                 "seq":1,
                 "role": role,
                 "content":content,
+                
                 "timestamp": datetime.now(timezone.utc).isoformat(),  # 필요시 추가
-                "wpm": None # (총단어/분)
+                # "wpm": None # (총단어/분)
             }
+            print(payload)
                # URL에 userId, sessionId 삽입
             url = f"{NESTJS_URL}/{user_id}/{session_id}/messages"
 
@@ -47,8 +50,8 @@ async def save_detailed_history(user_id: str, session_id:str,role: str, content:
     
 
 # 사용자 히스토리 조회 함수
-def get_user_history(user_id: str, limit: int = 4):
-    doc = sessions_col.find_one({"userId": user_id})
+def get_user_history(session_id: str, limit: int = 4):
+    doc = sessions_col.find_one({"sessionId": session_id})
     if doc and "history" in doc:
         return doc["history"][-limit:]
     return []

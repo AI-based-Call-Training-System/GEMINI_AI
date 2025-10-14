@@ -39,16 +39,20 @@ async def process_user_audio(user_id: str, audio_bytes: bytes, session_id:str,to
     # 1. 업로드된 파일을 wav로 변환
     wav_path = convert_to_wav(audio_bytes)
 
+    print("audio_logic_service: wav 변환 완료")
     # 2. 변환된 wav 파일을 STT에 전달
     with open(wav_path, "rb") as f:
         transcript = transcribe_audio(f.read())
+    print("audio_logic_service:STT 전환 완료")
 
     if not transcript:
-        raise ValueError("음성 텍스트 감지 실패")
+        raise ValueError("음성 텍스트 감지 실패:{transcript}")
 
     print("음성감지성공")
 
     # 3. DB/GridFS 저장
+    print("db 저장 시도")
+
     file_id = fs.put(open(wav_path, "rb"), filename=f"user_{user_id}_{session_id}_{datetime.now(timezone.utc).isoformat()}")
     audio_path = f"output/audio/user/{str(file_id)}.wav"
 
@@ -66,8 +70,8 @@ async def process_user_audio(user_id: str, audio_bytes: bytes, session_id:str,to
     )
     return {"transcript": transcript, "audio_id": str(file_id), "audio_path": audio_path}
 
-async def process_gemini_response(user_id: str, input_text: str,session_id:str,token:str) -> dict:
-    response_text = ask_gemini(user_id, input_text)
+async def process_gemini_response(user_id: str, input_text: str,session_id:str,token:str,scenario:str) -> dict:
+    response_text = ask_gemini(session_id, input_text,scenario)
     tts_path = text_to_speech(response_text, output_dir="output/audio/gemini")
 
     with open(tts_path, "rb") as f:

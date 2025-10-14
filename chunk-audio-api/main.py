@@ -45,20 +45,26 @@ app.add_middleware(
 # /chat/audio → 히스토리 기반 AI 응답 및 음성 생성
 @app.post("/chat/audio",
           summary="file,user_id-> ai 응답생성")
+# header에 Authorization으로 token을 전달하면(flutter->fastapi 의 과정도중) session_id로 전달됨
+# 문제원인을 아직도 파악 못함 왜지
 async def chat_audio_to_voice(request: Request,
     file: UploadFile = File(...),
     user_id: str = Form(...),
     session_id:str=Form(...),
-    token: str=Form(...)
+    token: str=Form(...),
+    scenario:str=Form(...)
 
 ):
     form = await request.form()
-    print(form) 
+    # print(form) 
+    # token= request.headers.get("Authorization")
+
+    print("chat/audio로 부터 받은 token:",token)
     audio_bytes = await file.read()
 
     try:
         user_data = await process_user_audio(user_id, audio_bytes,session_id,token)
-        gemini_data = await process_gemini_response(user_id, user_data["transcript"],session_id,token)
+        gemini_data = await process_gemini_response(user_id, user_data["transcript"],session_id,token,scenario)
     except Exception as e:
         return {"error": str(e)}
 
@@ -85,6 +91,7 @@ def get_average_speech_rate(session_id: str):
         return None
 
     rates = []
+
 
     for message in history:
         message_id = message.get("messageId")
@@ -114,8 +121,30 @@ def get_average_speech_rate(session_id: str):
         return None
 
     avg_rate = sum(rates) / len(rates)
-    return {"wpm":avg_rate}
-
+    return {
+        "scores": [
+            {
+            "title": "목표 달성도",
+            "score": 92,
+            "comment": "주문 내용을 정확히 이해하고 응답했습니다."
+            },
+            {
+            "title": "발화 속도",
+            "score": (avg_rate).round(),
+            "comment": "약간 빠른 편이지만 전반적으로 자연스러웠습니다."
+            },
+            {
+            "title": "침묵 시간",
+            "score": 85,
+            "comment": "적절한 템포로 대화를 이어갔습니다."
+            },
+            {
+            "title": "맥락 일관성",
+            "score": 95,
+            "comment": "대화 흐름이 자연스럽고 일관되었습니다."
+            }
+        ]
+        }
 
 # if __name__ == "__main__":
 #     session_id = "S-01K6ZWCA052JXADC3D1KA84BBW"
