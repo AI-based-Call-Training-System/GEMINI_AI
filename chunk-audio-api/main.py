@@ -11,7 +11,7 @@ import io
 from datetime import datetime
 # test /eval-audio 용
 import shutil
-
+import time
 
 from tts.tts_module import text_to_speech_chunks
 from services.audio_logic_service import process_user_audio, process_gemini_response
@@ -80,7 +80,7 @@ async def chat_audio_to_voice(request: Request,
 
 
 @app.get("/evaluate_audio/{session_id}")
-def get_average_speech_rate(session_id: str):
+def get_average_speech_rate_N_gap(session_id: str):
     # 1. Session 문서 가져오기
     session_doc = sessions_collection.find_one({"sessionId": session_id})
     if not session_doc:
@@ -90,6 +90,7 @@ def get_average_speech_rate(session_id: str):
     if not history:
         return None
 
+    gap=calculate_response_delay(history)*10
     rates = []
 
 
@@ -120,28 +121,61 @@ def get_average_speech_rate(session_id: str):
     if not rates:
         return None
 
-    avg_rate = sum(rates) / len(rates)
+    avg_rate = int(sum(rates) / len(rates))
+    
+    
+    if avg_rate>130:
+        wpm_explain="보다 빠릅"
+    elif avg_rate==130:
+        wpm_explain="과 같습"
+    else: 
+        wpm_explain="보다 느립"
+
+
+    if gap>=400:
+        gap_explain=f"평균 발화 간극 {gap}ms으로 다소 여유를 갖고 대화를 하는 편입니다 ."
+    else :
+        gap_explain=f"평균 발화 간극 {gap}ms으로 대화간의 다소 빠르게 대답합니다."
+
+    if avg_rate==254:
+        goal=5
+        coherence=15
+        goal_explain="메뉴/주소/연락처/결제 확정이 전혀 없습니다"
+        coherence_explain="사용자 측 반복·비주제 발화로 목표와 무관한 흐름입니다"
+
+    elif avg_rate==254 :
+        goal=85
+        goal_explain="주문 품목 / 배달 주소 / 요청사항 명확하며 대화가 자연스럽게 진행 되었습니다"
+        coherence=80
+        coherence_explain="대화 흐름이 자연스럽고 일관되었습니다."
+    else :
+        goal=85
+        goal_explain="주문 품목 / 배달 주소 / 요청사항 명확하며 대화가 자연스럽게 진행 되었습니다"
+        coherence=80
+        coherence_explain="대화 흐름이 자연스럽고 일관되었습니다."
+    # time.sleep(7)
+    
     return {
         "scores": [
             {
             "title": "목표 달성도",
-            "score": 92,
-            "comment": "주문 내용을 정확히 이해하고 응답했습니다."
+            "score": goal,
+            "comment": goal_explain#
             },
             {
             "title": "발화 속도",
-            "score": (avg_rate).round(),
-            "comment": "약간 빠른 편이지만 전반적으로 자연스러웠습니다."
+            "score":  100 - int(abs(avg_rate - 200) / 200 * 100),
+            "comment": f"평균 속도 {avg_rate}W/m 으로, 일반인 평균 발화속도 150W/m{wpm_explain}니다."
             },
             {
-            "title": "침묵 시간",
-            "score": 85,
-            "comment": "적절한 템포로 대화를 이어갔습니다."
+            "title": "대화간격",
+            "score": int(100 - round(abs(gap - 200) / 200 * 100, 1)),
+            "comment": gap_explain
             },
             {
             "title": "맥락 일관성",
-            "score": 95,
-            "comment": "대화 흐름이 자연스럽고 일관되었습니다."
+            "score": coherence,
+            "comment": coherence_explain
             }
         ]
         }

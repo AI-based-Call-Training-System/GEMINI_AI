@@ -2,6 +2,43 @@ import soundfile as sf
 import librosa
 from datetime import datetime
 import io
+from datetime import datetime
+def parse_timestamp(ts):
+    """dict, str, datetime 모두 안전하게 처리"""
+    if isinstance(ts, dict) and "$date" in ts:
+        return datetime.fromisoformat(ts["$date"].replace("Z", "+00:00"))
+    elif isinstance(ts, str):
+        return datetime.fromisoformat(ts.replace("Z", "+00:00"))
+    elif isinstance(ts, datetime):
+        return ts
+    else:
+        raise ValueError(f"지원되지 않는 타입: {type(ts)}")
+
+def calculate_response_delay(history):
+    """
+    history: [{... 'role': 'user', 'timestamp': ...}, ...]
+    사용자 발화 전까지 걸린 시간(초) 계산
+    """
+    delays = []
+    for i in range(1, len(history)):
+        prev = history[i-1]
+        curr = history[i]
+
+        # 사용자 발화가 아닌 경우 skip
+        if curr["role"] != "user":
+            continue
+
+        ts_prev = parse_timestamp(prev["timestamp"])
+        ts_curr = parse_timestamp(curr["timestamp"])
+
+        delta = (ts_curr - ts_prev).total_seconds()
+        delays.append(delta)
+
+    if not delays:
+        return None
+
+    avg_delay = sum(delays) / len(delays)
+    return avg_delay
 
 def calculate_speech_rate(audio_bytes: bytes, stt_text: str, top_db: int = 30):
     """BytesIO로 받은 오디오를 분석"""
@@ -30,7 +67,7 @@ def calculate_speech_rate(audio_bytes: bytes, stt_text: str, top_db: int = 30):
         log(f"5. 발화 속도 계산 완료: {words_per_sec} 어절/초, {words_per_min} 어절/분")
 
         return {
-            "active_speech_sec": round(active_duration, 2),
+            "active_speech_sec": active_duration,
             "word_count": word_count,
             "words_per_sec": words_per_sec,
             "words_per_min": words_per_min

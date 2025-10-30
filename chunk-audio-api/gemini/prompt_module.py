@@ -1,12 +1,14 @@
 # chunk-audio-api/gemini/prompt_module.py
-# from langchain.prompt import ChatPromptTemplate, MessagesPlaceholder
+
 import textwrap
-from langchain_core.prompts import MessagesPlaceholder 
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+
 def get_prompt(option):
-    print("option:",option)
+    """주어진 옵션에 따라 시스템 프롬프트 텍스트를 반환합니다."""
+    print("option:", option)
+    
     mapping = {
-        "order": """\
+        "order": """
                 [시스템 메시지]
 
                 당신은 배달 전문점(예: 치킨집, 카페 등)의 AI 전화 주문 점원입니다.
@@ -27,9 +29,8 @@ def get_prompt(option):
 
                 [모델 출력 예시]
                 "네, 뿌링클 한 마리 맞으신가요? 배달 주소를 알려주세요."
-
                 """,
-        "work": """\
+        "work": """
                 역할: 당신은 회사에서 업무 관련 문의를 처리하는 직원입니다.
                 목표: 동료 또는 외부인에게 명확하고 정중하게 업무 관련 정보를 안내합니다.
 
@@ -40,7 +41,7 @@ def get_prompt(option):
                 4. 불필요한 농담이나 사적인 이야기는 하지 않습니다.
                 5. 항상 정중하고 깔끔한 톤을 유지하며, 요청이 완료되면 대화를 종료합니다.
                 """,
-        "greeting": """\
+        "greeting": """
                 역할: 당신은 사용자의 친한 친구입니다.
                 목표: 사용자가 안부나 근황을 이야기하면 자연스럽게 공감하고 대화를 이어갑니다.
 
@@ -51,7 +52,7 @@ def get_prompt(option):
                 4. 불필요하게 딱딱한 표현이나 비즈니스 언어는 피합니다.
                 5. 상대가 불편해할 수 있는 주제는 피하고, 긍정적인 톤을 유지합니다.
                 """,
-        "school":"""\
+        "school":"""
                 역할: 당신은 대학교 과목의 조교(TA)입니다.
                 목표: 학생의 질문에 친절하고 정확하게 답변하며 학습을 돕습니다.
 
@@ -62,20 +63,20 @@ def get_prompt(option):
                 4. 비판적이거나 혼동을 줄 수 있는 표현은 피합니다.
                 5. 대화는 친절하고 전문적인 톤을 유지합니다.
                 """
-        
     }
-    raw_prompt=mapping.get(option, mapping["order"])
-    return textwrap.dedent(raw_prompt)
+    
+    # 옵션이 없는 경우 'order'를 기본값으로 설정
+    raw_prompt = mapping.get(option, mapping["order"])
+    
+    # 텍스트 들여쓰기 제거
+    return textwrap.dedent(raw_prompt).strip()
 
 
 def choose_chat_prompt(ocassion):
-    myprompt=get_prompt(ocassion)
-    # LangChain prompt template
-    chat_prompt = ChatPromptTemplate.from_messages([
-        ("system", myprompt),
-        MessagesPlaceholder(variable_name="history"),
-        ("human", "{user_input}"),
-    ])
-    print(f"\n[중요중요중요] llm prompt내용 \n {myprompt}")
-
-    return chat_prompt
+    """
+    주어진 시나리오에 맞는 시스템 메시지 문자열을 반환합니다.
+    (이 함수는 ChatPromptTemplate이 아닌, 시스템 메시지 문자열을 반환하도록 설계되었습니다.)
+    """
+    # myprompt는 get_prompt(ocassion)이 반환한 확정된 시스템 메시지 문자열
+    myprompt = get_prompt(ocassion) 
+    return myprompt
