@@ -3,7 +3,7 @@
 import textwrap
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 
-def get_prompt(option):
+def get_prompt(option,session_id=0):
     """주어진 옵션에 따라 시스템 프롬프트 텍스트를 반환합니다."""
     print("option:", option)
     
@@ -62,21 +62,79 @@ def get_prompt(option):
                 3. 전문 용어는 필요할 경우 설명을 덧붙입니다.
                 4. 비판적이거나 혼동을 줄 수 있는 표현은 피합니다.
                 5. 대화는 친절하고 전문적인 톤을 유지합니다.
+                """,
+        "prep_order": """
+                당신은 '치킨 주문(order)' 도메인의 전문 분석 및 레이블링 시스템입니다.
+                주어진 전체 대화 기록(history)을 분석하여, 아래 [최종 JSON 스키마]에 맞춰 **전체 대화 레벨**의 레이블링(labels, meta)과 **각 history 턴 레벨**의 레이블링(score, entities, slots)을 완료해야 합니다.
+
+                **오직 최종 JSON 객체만 출력해야 하며, 어떠한 설명이나 추가 문장도 포함해서는 안 됩니다.**
+                **절대로 백틱(```)이나 마크다운 문법을 사용하여 코드를 감싸지 마십시오. 첫 문자부터 마지막 문자까지 순수한 JSON 객체만 출력해야 합니다.**
+                ---
+                **[레이블링 지침]**
+                1.  **score**: [float] 형식으로 채우되, 0.0 ~ 5.0 사이의 값으로 비워두지 마십시오.
+                2.  **entities**: content에서 추출된 원시 엔티티(items, side, address)를 추출.
+                3.  **slots**: intent(place_order, chitchat_offtopic, uncooperative 등)와 구조화된 슬롯(items.menu, items.qty 등)을 명시.
+                4.  **labels.goal_success**: 주문 목표 달성 여부.
+                5.  **labels.coherence**: 오프토픽/비협조 반복 여부.
+                6.  **meta.fail_type**: 실패 시 원인 명시.
+
+                ---
+                **[입력 데이터]**
+                Session ID: {session_id}
+                대화 기록:
+                {history}
+
+                ---
+                **[최종 JSON 스키마]**
+                {{
+                "session_id": "{session_id}",
+                "tags": ["order"],
+                "messageCount": "PLACEHOLDER_MESSAGE_COUNT",
+                "goalSpec": {{
+                        "type": "order",
+                        "required_slots": ["items", "address"],
+                        "optional_slots": ["payment_method", "contact", "request"],
+                        "success_keywords": ["주문이 정상적으로 접수되었습니다", "주문 접수", "배달", "도착 예정", "결제 가능"],
+                        "deny_keywords": ["접수 불가", "정보 부족", "주소 없음"],
+                        "decision_role": "gemini"
+                }},
+                "history": [
+                        {{
+                        "role": "[user/gemini]",
+                        "content": "[content]",
+                        "score": 0,
+                        "entities": {{}},
+                        "slots": {{}}
+                        }}
+                ],
+                "labels": {{
+                        "goal_success": [boolean],
+                        "coherence": [boolean],
+                        "notes": "[분석 결과 요약]"
+                }},
+                "meta": {{
+                        "fail_type": "[string]",
+                }}
+                }}
                 """
-    }
+
+        }
+        
+   
     
     # 옵션이 없는 경우 'order'를 기본값으로 설정
     raw_prompt = mapping.get(option, mapping["order"])
+
     
     # 텍스트 들여쓰기 제거
     return textwrap.dedent(raw_prompt).strip()
 
 
-def choose_chat_prompt(ocassion):
+def choose_chat_prompt(ocassion,session_id):
     """
     주어진 시나리오에 맞는 시스템 메시지 문자열을 반환합니다.
     (이 함수는 ChatPromptTemplate이 아닌, 시스템 메시지 문자열을 반환하도록 설계되었습니다.)
     """
     # myprompt는 get_prompt(ocassion)이 반환한 확정된 시스템 메시지 문자열
-    myprompt = get_prompt(ocassion) 
+    myprompt = get_prompt(ocassion,session_id) 
     return myprompt

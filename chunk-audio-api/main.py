@@ -15,6 +15,7 @@ import time
 
 from tts.tts_module import text_to_speech_chunks
 from services.audio_logic_service import process_user_audio, process_gemini_response
+from gemini.preprocess_his import *
 from eval.get_wps_gap import *
 from pymongo import MongoClient
 
@@ -23,7 +24,8 @@ client = MongoClient("mongodb://localhost:27017")
 db = client["Call-Training-DB"]  # DB
 fs = gridfs.GridFS(db)
 
-sessions_collection = db["Sessions"]  # 컬렉션
+sessions_collection = db["Sessions"]  #일반 대화 컬렉션
+preprocess_collection=db["preprocess"] # 대화 전처리 컬렉션
 
 # 환경 변수 로드
 load_dotenv()
@@ -47,6 +49,9 @@ app.add_middleware(
           summary="file,user_id-> ai 응답생성")
 # header에 Authorization으로 token을 전달하면(flutter->fastapi 의 과정도중) session_id로 전달됨
 # 문제원인을 아직도 파악 못함 왜지
+# 해결됨
+# 왜긴왜야 서버에서 api 의 포맷을 제대로 안맞췄응게
+
 async def chat_audio_to_voice(request: Request,
     file: UploadFile = File(...),
     user_id: str = Form(...),
@@ -55,7 +60,7 @@ async def chat_audio_to_voice(request: Request,
     scenario:str=Form(...)
 
 ):
-    form = await request.form()
+    # form = await request.form()
     # print(form) 
     # token= request.headers.get("Authorization")
 
@@ -80,7 +85,7 @@ async def chat_audio_to_voice(request: Request,
 
 
 @app.get("/evaluate_audio/{session_id}")
-def get_average_speech_rate_N_gap(session_id: str):
+def get_score_about_4(session_id: str):
     # 1. Session 문서 가져오기
     session_doc = sessions_collection.find_one({"sessionId": session_id})
     if not session_doc:
@@ -118,6 +123,13 @@ def get_average_speech_rate_N_gap(session_id: str):
         except Exception as e:
             print(f"⚠️ Error processing {message_id}: {e}")
 
+    # 목표달성도/ 맥락일관성
+    # session저장 대화내용->가공-> prepare 테이블로 이동
+    # 테이블에 저장 완료
+    preprocess_session(session_id,history)
+
+    
+    # 모델 돌려서 점수 반환 
     if not rates:
         return None
 

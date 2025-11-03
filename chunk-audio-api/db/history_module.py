@@ -56,6 +56,11 @@ def get_user_history(session_id: str, limit: int = 4):
         return doc["history"][-limit:]
     return []
 
+def get_user_history_all(session_id: str, limit: int = 4):
+    doc = sessions_col.find_one({"sessionId": session_id})
+    if doc and "history" in doc:
+        return doc["history"]
+    return []
 # 사용자 히스토리 초기화 함수
 def reset_user_history(user_id: str):
     sessions_col.update_one(

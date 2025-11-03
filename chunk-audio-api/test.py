@@ -1,12 +1,8 @@
-from langchain_google_genai import ChatGoogleGenerativeAI
-import os
-from dotenv import load_dotenv
 
-load_dotenv()
-llm = ChatGoogleGenerativeAI(
-    model="gemini-2.5-flash",  # ✅ 이제 v1 API에서 지원됨
-    google_api_key=os.getenv("GEMINI_API_KEY")
+# preprocess_his.py 파일을 import
+from gemini import preprocess_his
 
-)
+# 함수 실행 (인자가 필요한 경우: preprocess_his.preprocess_session(input_data))
+preprocess_his.preprocess_session("S-01K7JRMFZ4ZWE639VRM4ZAJQ9G")
 
-print(llm.invoke("여보세요 주문 좀 하려고요"))
+print("preprocess_session 함수 실행 완료.")
