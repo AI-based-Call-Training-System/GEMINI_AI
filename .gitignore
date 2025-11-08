@@ -1,6 +1,6 @@
 igo-jungangyeeya2025-51046a98af01.json
 .env
-chunk-audio-api/eval/multitask_kobert.pt
+app/eval/multitask_kobert.pt
 *.pyc
-chunk-audio-api/output/audio/gemini/*
-chunk-audio-api/output/audio/user/*
+app/output/audio/gemini/*
+app/output/audio/user/*
