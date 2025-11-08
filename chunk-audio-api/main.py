@@ -126,7 +126,7 @@ def get_score_about_4(session_id: str):
     # 목표달성도/ 맥락일관성
     # session저장 대화내용->가공-> prepare 테이블로 이동
     # 테이블에 저장 완료
-    preprocess_session(session_id,history)
+    # preprocess_session(session_id,history)
 
     
     # 모델 돌려서 점수 반환 
@@ -172,7 +172,7 @@ def get_score_about_4(session_id: str):
             {
             "title": "목표 달성도",
             "score": goal,
-            "comment": goal_explain#
+            "comment": goal_explain
             },
             {
             "title": "발화 속도",
@@ -197,4 +197,18 @@ def get_score_about_4(session_id: str):
 #     avg = get_average_speech_rate(session_id)
 #     print(f"Average speech rate: {avg:.2f} words/min")
 
+
+@app.get("/preprocess/{session_id}")
+def preprocess_test(session_id: str):
+    session_doc = sessions_collection.find_one({"sessionId": session_id})
+    if not session_doc:
+        raise ValueError(f"Session {session_id} not found")
+
+    history = session_doc.get("history", [])
+    if not history:
+        return None
+
+    finaldata=preprocess_session(session_id)
+
+    return finaldata
 

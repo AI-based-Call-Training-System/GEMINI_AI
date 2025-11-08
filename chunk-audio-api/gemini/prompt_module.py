@@ -130,7 +130,7 @@ def get_prompt(option,session_id=0):
     return textwrap.dedent(raw_prompt).strip()
 
 
-def choose_chat_prompt(ocassion,session_id):
+def choose_chat_prompt(ocassion,session_id=0):
     """
     주어진 시나리오에 맞는 시스템 메시지 문자열을 반환합니다.
     (이 함수는 ChatPromptTemplate이 아닌, 시스템 메시지 문자열을 반환하도록 설계되었습니다.)
