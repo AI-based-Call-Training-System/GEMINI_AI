@@ -1,9 +1,9 @@
 # chunk-audio-api/db/history_module.py
 from datetime import datetime,timezone
-from db.database import sessions_col
+from db.database import sessions_collection
 import httpx
 import asyncio
-from eval.get_wps_gap import calculate_speech_rate
+# from eval.get_wps_gap import calculate_speech_rate
 NESTJS_URL = "http://localhost:3000/history"  # NestJS API 엔드포인트
 
 # 기존에 바로 컬렉션에 저장되던 로직을
@@ -51,19 +51,19 @@ async def save_detailed_history(user_id: str, session_id:str,role: str, content:
 
 # 사용자 히스토리 조회 함수
 def get_user_history(session_id: str, limit: int = 4):
-    doc = sessions_col.find_one({"sessionId": session_id})
+    doc = sessions_collection.find_one({"sessionId": session_id})
     if doc and "history" in doc:
         return doc["history"][-limit:]
     return []
 
 def get_user_history_all(session_id: str, limit: int = 4):
-    doc = sessions_col.find_one({"sessionId": session_id})
+    doc = sessions_collection.find_one({"sessionId": session_id})
     if doc and "history" in doc:
         return doc["history"]
     return []
 # 사용자 히스토리 초기화 함수
 def reset_user_history(user_id: str):
-    sessions_col.update_one(
+    sessions_collection.update_one(
         {"userId": user_id},
         {"$set": {"history": [], "updatedAt": datetime.utcnow().isoformat()}}
     )

@@ -19,7 +19,6 @@ load_dotenv()
 import torch
 import numpy as np
 from transformers import AutoConfig, AutoTokenizer, AutoModelForSequenceClassification
-from fastapi import APIRouter, HTTPException
 
 # =========================
 # 환경 변수 & 상수 (unified)
@@ -488,11 +487,6 @@ def evaluate_goal_hybrid(linearized_text: str, max_len_env: int) -> Dict[str, An
     }
     return {"label": label, "score": score, "per_window": per_window, "aggregate": aggregate}
 
-# =========================
-# FastAPI 라우터
-# =========================
-
-router = APIRouter(prefix="/kobert", tags=["kobert"])
 
 def _load_from_mongo(pid: str) -> Optional[dict]:
     try:
@@ -513,7 +507,7 @@ def _load_from_mongo(pid: str) -> Optional[dict]:
     client.close()
     return doc
 
-@router.get("/evaluate-preprocess/{pid}")
+# @router.get("/evaluate-preprocess/{pid}")
 def kobert_eval_preprocess(pid: str):
     """
     Preprocess 문서 평가:
@@ -522,7 +516,7 @@ def kobert_eval_preprocess(pid: str):
     """
     doc = _load_from_mongo(pid)
     if not doc:
-        raise HTTPException(status_code=404, detail="Preprocess not found")
+        raise ValueError(f"doc not found")
 
     # goal 입력: linearized 우선 (없으면 history 직렬화)
     goal_text = ((doc.get("linearized") or {}).get("text") or "").strip()
@@ -599,7 +593,7 @@ def kobert_eval_preprocess(pid: str):
     return result
 
 # (옵션) 본문 입력 평가
-@router.post("/evaluate-preprocess-body")
+# @router.post("/evaluate-preprocess-body")
 def kobert_eval_preprocess_body(doc: dict):
     # goal 입력: linearized 우선
     goal_text = ((doc.get("linearized") or {}).get("text") or "").strip()

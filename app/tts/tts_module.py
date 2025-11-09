@@ -35,12 +35,13 @@ def text_to_speech(text: str, output_dir: str = DEFAULT_AUDIO_DIR) -> str:
     # 음성 설정: 한국어, 중립 성별
     voice = texttospeech.VoiceSelectionParams(
         language_code="ko-KR",
-        ssml_gender=texttospeech.SsmlVoiceGender.NEUTRAL
+        ssml_gender=texttospeech.SsmlVoiceGender.FEMALE
     )
 
     # 오디오 출력 설정: LINEAR16(WAV 포맷)
     audio_config = texttospeech.AudioConfig(
-        audio_encoding=texttospeech.AudioEncoding.LINEAR16
+        audio_encoding=texttospeech.AudioEncoding.LINEAR16,
+        speaking_rate=1.3
     )
 
     # TTS 요청 수행

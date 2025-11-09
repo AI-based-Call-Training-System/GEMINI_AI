@@ -144,7 +144,7 @@ def preprocess_session(session_id:str):
     )
     prep_result=prep_for_scoring(session_id,"prep_order",llm)
 
-
+    print(prep_result)
     #3 NestJS API에 저장
     url = "http://localhost:3000/preprocess/save"
     headers = {"Content-Type": "application/json"}

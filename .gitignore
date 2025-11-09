@@ -1,6 +1,6 @@
 igo-jungangyeeya2025-51046a98af01.json
 .env
-app/eval/multitask_kobert.pt
 *.pyc
-app/output/audio/gemini/*
-app/output/audio/user/*
+app/data*
+app/output*
+venv/*
