@@ -1,5 +1,5 @@
 # app/routers/evaluate.py
-from fastapi import APIRouter
+from fastapi import APIRouter,BackgroundTasks
 from eval.get_wps_gap import (
     calculate_response_delay,
     calculate_whole_speech_rate,
@@ -11,21 +11,27 @@ router = APIRouter()
 
 
 @router.get("/evaluate_audio/{session_id}")
-def get_score_about_4(session_id: str):
+def get_score_about_4(session_id: str,background_tasks:BackgroundTasks):
     # 1. Session 문서 가져오기
     session_doc = sessions_collection.find_one({"sessionId": session_id})
     if not session_doc:
         raise ValueError(f"Session {session_id} not found")
+    
+    #태그값뽑기
+    tags=session_doc["tags"]
 
+    #대화내용 뽑기
     history = session_doc.get("history", [])
     if not history:
         return None
+    
 
     #발화간극
     res_result=calculate_response_delay(history)
     print(res_result)
     gap=int(100 - round(abs(res_result["avg_delay"]*10 - 200) / 200 * 100, 1))
     gap_explain=res_result["gap_explain"]
+
 
     #발화속도
     rate_result=calculate_whole_speech_rate(history)
@@ -38,7 +44,7 @@ def get_score_about_4(session_id: str):
 
     # session저장 대화내용->가공-> prepare 테이블로 이동
     # 테이블에 저장 완료
-    preprocess_session(session_id)
+    preprocess_session(session_id,tags)
 
     kobert_result=kobert_eval_preprocess(session_id)
 
@@ -50,20 +56,6 @@ def get_score_about_4(session_id: str):
     cohereence_score=round(kobert_result["coherence"]["score"],2)*100
     cohereence_label=kobert_result["coherence"]["label"]
 
-
-# {"goal": {
-#             "label": g_label,
-#             "score": float(g_score),
-#             "aggregate": g["aggregate"],
-#             "per_window": g["per_window"],
-#         },
-#         "coherence": {
-#             "label": c_label,
-#             "score": float(c_score),
-#             "aggregate": c["aggregate"],
-#             "per_window": c["per_window"],
-#         }}
-    
     r={
         "scores": [
             {
@@ -88,8 +80,29 @@ def get_score_about_4(session_id: str):
             }
         ]
         }
+    
+    background_tasks.add_task(save_eval_result_to_db, session_id, r)
+
     print(r)
     return r
+
+
+# 별도의 저장 함수 정의
+def save_eval_result_to_db(session_id: str, result: dict):
+    nest_url = "http://localhost:3000/eval_result/save"
+    payload = {
+        "session_id": session_id,
+        "scores": result
+    }
+
+    try:
+        response = requests.post(nest_url, json=payload)
+        if response.status_code == 200:
+            print("✅ NestJS 저장 성공:", response.json())
+        else:
+            print(f"⚠️ NestJS 저장 실패 ({response.status_code}):", response.text)
+    except Exception as e:
+        print("❌ NestJS 전송 오류:", e)
 
 
 # preprocess 테이블 저장 테스트용

@@ -21,7 +21,7 @@ from gemini.prompt_module import choose_chat_prompt
 
 
 
-def prep_for_scoring(session_id: str, scenario: str, llm) -> str:
+def prep_for_scoring(session_id: str, tags: str, llm) -> str:
     """
     세션의 대화 기록을 기반으로 프롬프트를 구성하고,
     LLM에게 전체 scoring JSON 생성을 요청하는 함수 (LangChain 제거 버전)
@@ -38,6 +38,21 @@ def prep_for_scoring(session_id: str, scenario: str, llm) -> str:
 
         #3) 시스템 프롬프트 불러오기
         # choose_chat_prompt() 내부에서 get_prompt() 호출됨
+
+        # tags에 따라 필요한 prep 프롬프트 분기
+        if(tags=="work"):
+            scenario="prep_work"
+        elif(tags=="order"):
+            scenario="prep_order"
+        elif(tags=="greeting"):
+            scenario="prep_order"
+        elif(tags=="school"):
+            scenario="prep_school"
+        else:
+            print("error(preprocess_his:tags):",tags)
+
+
+            
         system_message = choose_chat_prompt(scenario, session_id)
 
         #4) 문자열 포맷 삽입 (.format 이용)
@@ -131,7 +146,7 @@ def convert_to_final_format(old_data: Dict[str, Any]) -> Dict[str, Any]:
 
     return final_data
 
-def preprocess_session(session_id:str):
+def preprocess_session(session_id:str,tags:str):
     #1 환경 변수 로드
     load_dotenv()
 
@@ -142,7 +157,7 @@ def preprocess_session(session_id:str):
         temperature=0.7,
         google_api_key=os.getenv("GEMINI_API_KEY")
     )
-    prep_result=prep_for_scoring(session_id,"prep_order",llm)
+    prep_result=prep_for_scoring(session_id,tags,llm)
 
     print(prep_result)
     #3 NestJS API에 저장

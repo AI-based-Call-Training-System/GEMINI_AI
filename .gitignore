@@ -1,6 +1,6 @@
 igo-jungangyeeya2025-51046a98af01.json
 .env
 *.pyc
-app/data*
-app/output*
+app/data/*
+app/output/*
 venv/*

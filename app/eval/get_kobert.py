@@ -570,25 +570,25 @@ def kobert_eval_preprocess(pid: str):
         }
     }
 
-    # Mongo 저장
-    try:
-        from pymongo import MongoClient
-        from datetime import datetime
-        client = MongoClient(MONGODB_URI)
-        db = client[DB_NAME]
-        scores = db[SCORE_COLLECTION]
-        scores.update_one(
-            {"preprocessId": pid},
-            {"$set": {
-                **result,
-                "createdAt": datetime.utcnow().isoformat(),
-                "source": "kobert_eval_api",
-            }},
-            upsert=True
-        )
-        client.close()
-    except Exception as e:
-        print(f"[WARN] Mongo 저장 실패: {e}", file=sys.stderr)
+    # # Mongo 저장
+    # try:
+    #     from pymongo import MongoClient
+    #     from datetime import datetime
+    #     client = MongoClient(MONGODB_URI)
+    #     db = client[DB_NAME]
+    #     scores = db[SCORE_COLLECTION]
+    #     scores.update_one(
+    #         {"preprocessId": pid},
+    #         {"$set": {
+    #             **result,
+    #             "createdAt": datetime.utcnow().isoformat(),
+    #             "source": "kobert_eval_api",
+    #         }},
+    #         upsert=True
+    #     )
+    #     client.close()
+    # except Exception as e:
+    #     print(f"[WARN] Mongo 저장 실패: {e}", file=sys.stderr)
 
     return result
 
