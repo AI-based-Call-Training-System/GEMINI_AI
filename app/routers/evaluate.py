@@ -92,12 +92,12 @@ def save_eval_result_to_db(session_id: str, result: dict):
     nest_url = "http://localhost:3000/eval_result/save"
     payload = {
         "session_id": session_id,
-        "scores": result
+        "scores": result["scores"]
     }
 
     try:
         response = requests.post(nest_url, json=payload)
-        if response.status_code == 200:
+        if response.status_code == 201:
             print("✅ NestJS 저장 성공:", response.json())
         else:
             print(f"⚠️ NestJS 저장 실패 ({response.status_code}):", response.text)

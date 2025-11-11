@@ -124,8 +124,9 @@ def calculate_whole_speech_rate(history):
             print(f"⚠️ Error processing {message_id}: {e}")
 
     # 모델 돌려서 점수 반환 
-
-    avg_rate = int(sum(rates) / len(rates))
+    if(len(rates)!=0):
+        avg_rate = int(sum(rates) / len(rates))
+    else: avg_rate=0
     
 
     if avg_rate>130:
